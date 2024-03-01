@@ -57,6 +57,9 @@ TU_VERIFY_STATIC(CFG_TUD_MSC_EP_BUFSIZE < UINT16_MAX, "Size is not correct");
 // Set SCSI sense response
 bool tud_msc_set_sense(uint8_t lun, uint8_t sense_key, uint8_t add_sense_code, uint8_t add_sense_qualifier);
 
+//DKr, Add buffer
+void tud_msc_set_buffer(uint8_t *mscd_buf, uint16_t mscd_buf_len);
+
 //--------------------------------------------------------------------+
 // Application Callbacks (WEAK is optional)
 //--------------------------------------------------------------------+
