@@ -75,7 +75,8 @@ typedef struct
 }mscd_interface_t;
 
 CFG_TUD_MEM_SECTION CFG_TUSB_MEM_ALIGN tu_static mscd_interface_t _mscd_itf;
-CFG_TUD_MEM_SECTION CFG_TUSB_MEM_ALIGN tu_static uint8_t _mscd_buf[CFG_TUD_MSC_EP_BUFSIZE];
+tu_static uint8_t *_mscd_buf;
+tu_static uint16_t _mscd_buf_len;
 
 //--------------------------------------------------------------------+
 // INTERNAL OBJECT & FUNCTION DECLARATION
@@ -240,6 +241,12 @@ bool tud_msc_set_sense(uint8_t lun, uint8_t sense_key, uint8_t add_sense_code, u
   _mscd_itf.add_sense_qualifier = add_sense_qualifier;
 
   return true;
+}
+
+void tud_msc_set_buffer(uint8_t *mscd_buf, uint16_t mscd_buf_len) 
+{
+    _mscd_buf = mscd_buf;
+    _mscd_buf_len = mscd_buf_len;
 }
 
 static inline void set_sense_medium_not_present(uint8_t lun)
@@ -462,7 +469,7 @@ bool mscd_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t event, uint32_t
         // 2. IN & Zero: Process if is built-in, else Invoke app callback. Skip DATA if zero length
         if ( (p_cbw->total_bytes > 0 ) && !is_data_in(p_cbw->dir) )
         {
-          if (p_cbw->total_bytes > sizeof(_mscd_buf))
+          if (p_cbw->total_bytes > _mscd_buf_len)
           {
             TU_LOG_DRV("  SCSI reject non READ10/WRITE10 with large data\r\n");
             fail_scsi_op(rhport, p_msc, MSC_CSW_STATUS_FAILED);
@@ -475,7 +482,7 @@ bool mscd_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t event, uint32_t
         }else
         {
           // First process if it is a built-in commands
-          int32_t resplen = proc_builtin_scsi(p_cbw->lun, p_cbw->command, _mscd_buf, sizeof(_mscd_buf));
+          int32_t resplen = proc_builtin_scsi(p_cbw->lun, p_cbw->command, _mscd_buf, _mscd_buf_len);
 
           // Invoke user callback if not built-in
           if ( (resplen < 0) && (p_msc->sense_key == 0) )
@@ -861,7 +868,7 @@ static void proc_read10_cmd(uint8_t rhport, mscd_interface_t* p_msc)
   uint32_t const lba = rdwr10_get_lba(p_cbw->command) + (p_msc->xferred_len / block_sz);
 
   // remaining bytes capped at class buffer
-  int32_t nbytes = (int32_t) tu_min32(sizeof(_mscd_buf), p_cbw->total_bytes-p_msc->xferred_len);
+  int32_t nbytes = (int32_t) tu_min32(_mscd_buf_len, p_cbw->total_bytes-p_msc->xferred_len);
 
   // Application can consume smaller bytes
   uint32_t const offset = p_msc->xferred_len % block_sz;
@@ -908,7 +915,7 @@ static void proc_write10_cmd(uint8_t rhport, mscd_interface_t* p_msc)
   }
 
   // remaining bytes capped at class buffer
-  uint16_t nbytes = (uint16_t) tu_min32(sizeof(_mscd_buf), p_cbw->total_bytes-p_msc->xferred_len);
+  uint16_t nbytes = (uint16_t) tu_min32(_mscd_buf_len, p_cbw->total_bytes-p_msc->xferred_len);
 
   // Write10 callback will be called later when usb transfer complete
   TU_ASSERT( usbd_edpt_xfer(rhport, p_msc->ep_out, _mscd_buf, nbytes), );
