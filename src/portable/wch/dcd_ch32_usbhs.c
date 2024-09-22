@@ -173,6 +173,14 @@ void dcd_init(uint8_t rhport) {
   USBHSD->CONTROL |= USBHS_DEV_PU_EN;
 }
 
+bool dcd_deinit(uint8_t rhport) {
+  dcd_int_disable(rhport);
+  USBHSD->CONTROL = USBHS_FORCE_RST;
+  USBHSD->HOST_CTRL = 0;
+
+  return true;
+}
+
 void dcd_int_enable(uint8_t rhport) {
   (void) rhport;
   NVIC_EnableIRQ(USBHS_IRQn);
