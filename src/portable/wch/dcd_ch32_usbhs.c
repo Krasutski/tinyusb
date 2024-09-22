@@ -28,15 +28,15 @@
 #include "tusb_option.h"
 
 #if CFG_TUD_ENABLED && defined(TUP_USBIP_WCH_USBHS) && CFG_TUD_WCH_USBIP_USBHS
-#include "ch32_usbhs_reg.h"
+  #include "ch32_usbhs_reg.h"
 
-#include "device/dcd.h"
+  #include "device/dcd.h"
 
-// Max number of bi-directional endpoints including EP0
-#define EP_MAX  16
+  // Max number of bi-directional endpoints including EP0
+  #define EP_MAX 16
 
 typedef struct {
-  uint8_t* buffer;
+  uint8_t *buffer;
   uint16_t total_len;
   uint16_t queued_len;
   uint16_t max_size;
@@ -49,19 +49,20 @@ typedef enum {
   EP_RESPONSE_NAK,
 } ep_response_list_t;
 
-#define XFER_CTL_BASE(_ep, _dir) &xfer_status[_ep][_dir]
+  #define XFER_CTL_BASE(_ep, _dir) &xfer_status[_ep][_dir]
 static xfer_ctl_t xfer_status[EP_MAX][2];
 
-#define EP_TX_LEN(ep)     *(volatile uint16_t *)((volatile uint16_t *)&(USBHSD->UEP0_TX_LEN) + (ep) * 2)
-#define EP_TX_CTRL(ep)    *(volatile uint8_t *)((volatile uint8_t *)&(USBHSD->UEP0_TX_CTRL) + (ep) * 4)
-#define EP_RX_CTRL(ep)    *(volatile uint8_t *)((volatile uint8_t *)&(USBHSD->UEP0_RX_CTRL) + (ep) * 4)
-#define EP_RX_MAX_LEN(ep) *(volatile uint16_t *)((volatile uint16_t *)&(USBHSD->UEP0_MAX_LEN) + (ep) * 2)
+  #define EP_TX_LEN(ep) *(volatile uint16_t *) ((volatile uint16_t *) &(USBHSD->UEP0_TX_LEN) + (ep) * 2)
+  #define EP_TX_CTRL(ep) *(volatile uint8_t *) ((volatile uint8_t *) &(USBHSD->UEP0_TX_CTRL) + (ep) * 4)
+  #define EP_RX_CTRL(ep) *(volatile uint8_t *) ((volatile uint8_t *) &(USBHSD->UEP0_RX_CTRL) + (ep) * 4)
+  #define EP_RX_MAX_LEN(ep) *(volatile uint16_t *) ((volatile uint16_t *) &(USBHSD->UEP0_MAX_LEN) + (ep) * 2)
 
-#define EP_TX_DMA_ADDR(ep) *(volatile uint32_t *)((volatile uint32_t *)&(USBHSD->UEP1_TX_DMA) + (ep - 1))
-#define EP_RX_DMA_ADDR(ep) *(volatile uint32_t *)((volatile uint32_t *)&(USBHSD->UEP1_RX_DMA) + (ep - 1))
+  #define EP_TX_DMA_ADDR(ep) *(volatile uint32_t *) ((volatile uint32_t *) &(USBHSD->UEP1_TX_DMA) + (ep - 1))
+  #define EP_RX_DMA_ADDR(ep) *(volatile uint32_t *) ((volatile uint32_t *) &(USBHSD->UEP1_RX_DMA) + (ep - 1))
 
 /* Endpoint Buffer */
-TU_ATTR_ALIGNED(4) static uint8_t ep0_buffer[CFG_TUD_ENDPOINT0_SIZE];
+TU_ATTR_ALIGNED(4)
+static uint8_t ep0_buffer[CFG_TUD_ENDPOINT0_SIZE];
 
 static void ep_set_response_and_toggle(uint8_t ep_num, tusb_dir_t ep_dir, ep_response_list_t response_type) {
   if (ep_dir == TUSB_DIR_IN) {
@@ -95,7 +96,7 @@ static void ep_set_response_and_toggle(uint8_t ep_num, tusb_dir_t ep_dir, ep_res
   }
 }
 
-static void xfer_data_packet(uint8_t ep_num, tusb_dir_t ep_dir, xfer_ctl_t* xfer) {
+static void xfer_data_packet(uint8_t ep_num, tusb_dir_t ep_dir, xfer_ctl_t *xfer) {
   if (ep_dir == TUSB_DIR_IN) {
     uint16_t remaining = xfer->total_len - xfer->queued_len;
     uint16_t next_tx_size = TU_MIN(remaining, xfer->max_size);
@@ -141,12 +142,12 @@ void dcd_init(uint8_t rhport) {
 
   USBHSD->CONTROL = 0;
 
-#if TUD_OPT_HIGH_SPEED
+  #if TUD_OPT_HIGH_SPEED
   USBHSD->CONTROL = USBHS_DMA_EN | USBHS_INT_BUSY_EN | USBHS_HIGH_SPEED;
-#else
-  #error OPT_MODE_FULL_SPEED not currently supported on CH32
+  #else
+    #error OPT_MODE_FULL_SPEED not currently supported on CH32
   USBHSD->CONTROL = USBHS_DMA_EN | USBHS_INT_BUSY_EN | USBHS_FULL_SPEED;
-#endif
+  #endif
 
   USBHSD->INT_EN = 0;
   USBHSD->INT_EN = USBHS_SETUP_ACT_EN | USBHS_TRANSFER_EN | USBHS_BUS_RST_EN | USBHS_SUSPEND_EN | USBHS_ISO_ACT_EN;
@@ -216,7 +217,7 @@ void dcd_sof_enable(uint8_t rhport, bool en) {
   }
 }
 
-void dcd_edpt0_status_complete(uint8_t rhport, tusb_control_request_t const* request) {
+void dcd_edpt0_status_complete(uint8_t rhport, tusb_control_request_t const *request) {
   (void) rhport;
 
   if (request->bmRequestType_bit.recipient == TUSB_REQ_RCPT_DEVICE &&
@@ -229,7 +230,7 @@ void dcd_edpt0_status_complete(uint8_t rhport, tusb_control_request_t const* req
   EP_RX_CTRL(0) = USBHS_EP_R_RES_NAK | USBHS_EP_R_TOG_0;
 }
 
-bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const* desc_edpt) {
+bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *desc_edpt) {
   (void) rhport;
 
   uint8_t const ep_num = tu_edpt_number(desc_edpt->bEndpointAddress);
@@ -241,7 +242,7 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const* desc_edpt) {
     return true;
   }
 
-  xfer_ctl_t* xfer = XFER_CTL_BASE(ep_num, dir);
+  xfer_ctl_t *xfer = XFER_CTL_BASE(ep_num, dir);
   xfer->max_size = tu_edpt_packet_size(desc_edpt);
 
   xfer->is_iso = (desc_edpt->bmAttributes.xfer == TUSB_XFER_ISOCHRONOUS);
@@ -277,7 +278,7 @@ void dcd_edpt_close(uint8_t rhport, uint8_t ep_addr) {
     EP_RX_MAX_LEN(ep_num) = 0;
     USBHSD->ENDP_TYPE &= ~(USBHS_EP0_R_TYP << ep_num);
     USBHSD->ENDP_CONFIG &= ~(USBHS_EP0_R_EN << ep_num);
-  } else {  // TUSB_DIR_IN
+  } else {// TUSB_DIR_IN
     EP_TX_CTRL(ep_num) = USBHS_EP_T_AUTOTOG | USBHS_EP_T_RES_NAK | USBHS_EP_T_TOG_0;
     EP_TX_LEN(ep_num) = 0;
     USBHSD->ENDP_TYPE &= ~(USBHS_EP0_T_TYP << ep_num);
@@ -312,12 +313,12 @@ void dcd_edpt_clear_stall(uint8_t rhport, uint8_t ep_addr) {
   }
 }
 
-bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t* buffer, uint16_t total_bytes) {
+bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t *buffer, uint16_t total_bytes) {
   (void) rhport;
   uint8_t const ep_num = tu_edpt_number(ep_addr);
   tusb_dir_t const dir = tu_edpt_dir(ep_addr);
 
-  xfer_ctl_t* xfer = XFER_CTL_BASE(ep_num, dir);
+  xfer_ctl_t *xfer = XFER_CTL_BASE(ep_num, dir);
   xfer->buffer = buffer;
   xfer->total_len = total_bytes;
   xfer->queued_len = 0;
@@ -340,11 +341,11 @@ void dcd_int_handler(uint8_t rhport) {
     if (token == USBHS_TOKEN_PID_SOF) {
       uint32_t frame_count = USBHSD->FRAME_NO & USBHS_FRAME_NO_NUM_MASK;
       dcd_event_sof(rhport, frame_count, true);
-    }else {
+    } else {
       uint8_t const ep_num = int_status & MASK_UIS_ENDP;
       tusb_dir_t const ep_dir = (token == USBHS_TOKEN_PID_IN) ? TUSB_DIR_IN : TUSB_DIR_OUT;
       uint8_t const ep_addr = tu_edpt_addr(ep_num, ep_dir);
-      xfer_ctl_t* xfer = XFER_CTL_BASE(ep_num, ep_dir);
+      xfer_ctl_t *xfer = XFER_CTL_BASE(ep_num, ep_dir);
 
       if (token == USBHS_TOKEN_PID_OUT) {
         uint16_t rx_len = USBHSD->RX_LEN;
@@ -385,22 +386,22 @@ void dcd_int_handler(uint8_t rhport) {
   } else if (int_flag & USBHS_BUS_RST_FLAG) {
     // TODO CH32 does not detect actual speed at this time (should be known at end of reset)
     // This interrupt probably triggered at start of bus reset
-//    tusb_speed_t actual_speed;
-//    switch(USBHSD->SPEED_TYPE & USBHS_SPEED_TYPE_MASK){
-//      case USBHS_SPEED_TYPE_HIGH:
-//        actual_speed = TUSB_SPEED_HIGH;
-//        break;
-//      case USBHS_SPEED_TYPE_FULL:
-//        actual_speed = TUSB_SPEED_FULL;
-//        break;
-//      case USBHS_SPEED_TYPE_LOW:
-//        actual_speed = TUSB_SPEED_LOW;
-//        break;
-//      default:
-//        TU_ASSERT(0,);
-//        break;
-//    }
-//    dcd_event_bus_reset(0, actual_speed, true);
+    //    tusb_speed_t actual_speed;
+    //    switch(USBHSD->SPEED_TYPE & USBHS_SPEED_TYPE_MASK){
+    //      case USBHS_SPEED_TYPE_HIGH:
+    //        actual_speed = TUSB_SPEED_HIGH;
+    //        break;
+    //      case USBHS_SPEED_TYPE_FULL:
+    //        actual_speed = TUSB_SPEED_FULL;
+    //        break;
+    //      case USBHS_SPEED_TYPE_LOW:
+    //        actual_speed = TUSB_SPEED_LOW;
+    //        break;
+    //      default:
+    //        TU_ASSERT(0,);
+    //        break;
+    //    }
+    //    dcd_event_bus_reset(0, actual_speed, true);
 
     dcd_event_bus_reset(0, TUSB_SPEED_HIGH, true);
 
