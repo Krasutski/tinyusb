@@ -545,6 +545,13 @@ static void usbd_reset(uint8_t rhport) {
   usbd_control_reset();
 }
 
+void tud_deinit (void) {
+  dcd_int_disable(_usbd_rhport);
+  usbd_reset(_usbd_rhport);
+  dcd_init(_usbd_rhport);
+  _usbd_rhport = RHPORT_INVALID;
+}
+
 bool tud_task_event_ready(void) {
   // Skip if stack is not initialized
   if (!tud_inited()) return false;
